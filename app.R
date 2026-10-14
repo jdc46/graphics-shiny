@@ -11,8 +11,20 @@ ui <- fluidPage(
     sidebarPanel(
       fileInput(
         "file",
-        "Upload a CSV File",
-        accept = ".csv"
+        "Upload a Data File",
+        accept = c(".csv", ".txt")
+      ),
+      
+      selectInput(
+        "delimiter",
+        "Delimiter",
+        choices = c(
+          "Auto Detect" = "auto",
+          "Comma" = ",",
+          "Tab" = "\t",
+          "Whitespace" = "ws"
+        ),
+        selected = "auto"
       ),
       
       uiOutput("var_select"),
@@ -55,8 +67,51 @@ ui <- fluidPage(
 server <- function(input, output, session){
   
   data <- reactive({
+    
     req(input$file)
-    read.csv(input$file$datapath)
+    
+    file <- input$file$datapath
+    
+    delim <- input$delimiter
+    
+    # Auto-detect delimiter
+    if (delim == "auto") {
+      
+      first_line <- readLines(file, n = 1)
+      
+      if (grepl(",", first_line)) {
+        
+        delim <- ","
+        
+      } else if (grepl("\t", first_line)) {
+        
+        delim <- "\t"
+        
+      } else {
+        
+        delim <- "ws"
+        
+      }
+    }
+    
+    # Read file using selected/detected delimiter
+    if (delim == ",") {
+      
+      read.csv(file, header = TRUE)
+      
+    } else if (delim == "\t") {
+      
+      read.delim(file, header = TRUE)
+      
+    } else {
+      
+      read.table(
+        file,
+        header = TRUE,
+        sep = "",
+        stringsAsFactors = FALSE
+      )
+    }
   })
   
   output$preview <- renderTable({
