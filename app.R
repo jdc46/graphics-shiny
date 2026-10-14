@@ -67,44 +67,27 @@ ui <- fluidPage(
 server <- function(input, output, session){
   
   data <- reactive({
-    
     req(input$file)
-    
     file <- input$file$datapath
-    
     delim <- input$delimiter
-    
     # Auto-detect delimiter
     if (delim == "auto") {
-      
       first_line <- readLines(file, n = 1)
-      
       if (grepl(",", first_line)) {
-        
         delim <- ","
-        
       } else if (grepl("\t", first_line)) {
-        
         delim <- "\t"
-        
       } else {
-        
         delim <- "ws"
-        
       }
     }
     
     # Read file using selected/detected delimiter
     if (delim == ",") {
-      
       read.csv(file, header = TRUE)
-      
     } else if (delim == "\t") {
-      
       read.delim(file, header = TRUE)
-      
     } else {
-      
       read.table(
         file,
         header = TRUE,
@@ -122,28 +105,30 @@ server <- function(input, output, session){
     df <- data()
     tagList(
       selectInput(
-        "x",
-        "X Variable",
+        "response",
+        "Response Variable",
         choices = names(df)
       ),
       selectInput(
-        "y",
-        "Y Variable",
-        choices = names(df)
+        "predictor",
+        "Predictor Variable",
+        choices = c("", names(df))
       )
     )
   })
   
   output$plot <- renderPlotly({
-    req(input$x)
+    req(data())
+    req(input$response)
     df <- data()
     p <- NULL
     if(input$plotType == "Scatterplot"){
+      req(input$predictor != "")
       p <- ggplot(
         df,
-        aes_string(
-          x = input$x,
-          y = input$y
+        aes(
+          x = .data[[input$predictor]],
+          y = .data[[input$response]]
         )
       ) +
         geom_point(
@@ -155,8 +140,8 @@ server <- function(input, output, session){
     if(input$plotType == "Histogram"){
       p <- ggplot(
         df,
-        aes_string(
-          x = input$x
+        aes(
+          x = .data[[input$response]]
         )
       ) +
         geom_histogram(
@@ -165,12 +150,13 @@ server <- function(input, output, session){
         )
     }
     
-    if(input$plotType == "Boxplot"){
+    if(input$plotType == "Boxplot") {
+      req(input$predictor != "")
       p <- ggplot(
         df,
-        aes_string(
-          x = input$x,
-          y = input$y
+        aes(
+          x = factor(.data[[input$predictor]]),
+          y = .data[[input$response]]
         )
       ) +
         geom_boxplot(
