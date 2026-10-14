@@ -103,16 +103,22 @@ server <- function(input, output, session){
   
   output$var_select <- renderUI({
     df <- data()
+    
     tagList(
       selectInput(
         "response",
         "Response Variable",
-        choices = names(df)
+        choices = c("None" = "None",
+                    setNames(names(df), names(df))),
+        selected = "None"
       ),
+      
       selectInput(
         "predictor",
         "Predictor Variable",
-        choices = c("", names(df))
+        choices = c("None" = "None",
+                    setNames(names(df), names(df))),
+        selected = "None"
       )
     )
   })
@@ -124,6 +130,9 @@ server <- function(input, output, session){
     p <- NULL
     if(input$plotType == "Scatterplot"){
       req(input$predictor != "")
+      validate(
+        need(input$predictor != "", "Please select a predictor variable")
+      )
       p <- ggplot(
         df,
         aes(
@@ -151,17 +160,28 @@ server <- function(input, output, session){
     }
     
     if(input$plotType == "Boxplot") {
-      req(input$predictor != "")
-      p <- ggplot(
-        df,
-        aes(
-          x = factor(.data[[input$predictor]]),
-          y = .data[[input$response]]
-        )
-      ) +
-        geom_boxplot(
-          fill = input$color
-        )
+      
+      validate(
+        need(input$response != "None", "Please select a response variable.")
+      )
+      
+      if(input$predictor == "None") {
+        
+        # Single boxplot
+        p <- ggplot(df, aes(y = .data[[input$response]])) +
+          geom_boxplot(fill = input$color)
+        
+      } else {
+        
+        # Grouped boxplots
+        p <- ggplot(df,
+          aes(
+            x = factor(.data[[input$predictor]]),
+            y = .data[[input$response]]
+          )
+        ) +
+          geom_boxplot(fill = input$color)
+      }
     }
     
     if(input$theme == "Minimal"){
