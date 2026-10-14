@@ -137,3 +137,5 @@ server <- function(input, output, session){
     ggplotly(p)
   })
 }
+
+shinyApp(ui = ui, server = server)
